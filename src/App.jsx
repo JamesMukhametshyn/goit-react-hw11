@@ -1,57 +1,59 @@
 import "./App.css";
 
 import { useEffect, useState } from "react";
-import Description from "./components/Description/Description";
-import Options from "./components/Options/Options";
-import Feedback from "./components/Feedback/Feedback";
-import Notification from "./components/Notification/Notification";
 
-const defaultRating = {
-  good: 0,
-  neutral: 0,
-  bad: 0,
-};
+import ContactList from "./components/ContactList/ContactList.jsx";
+
+import initialContacts from "./components/ContactList/contacts.json";
+import { nanoid } from "nanoid";
+import ContactForm from "./components/ContactForm/ContactForm.jsx";
+import SearchBox from "./components/SearchBox/SearchBox.jsx";
 
 function App() {
-  const [rating, setRating] = useState(() => {
-    const stringifiedRating = localStorage.getItem("ratingValues");
-    const parsedRating = JSON.parse(stringifiedRating) ?? defaultRating;
-    return parsedRating;
+  const [contacts, setContacts] = useState(() => {
+    const stringifiedContacts = localStorage.getItem("contacts");
+    if (!stringifiedContacts) return initialContacts;
+
+    const parsedContacts = JSON.parse(stringifiedContacts);
+    return parsedContacts;
   });
 
-  const updateFeedback = (feedbackType) => {
-    setRating({ ...rating, [feedbackType]: rating[feedbackType] + 1 });
+  useEffect(() => {
+    localStorage.setItem("contacts", JSON.stringify(contacts));
+  }, [contacts]);
+
+  const addContact = (formData) => {
+    const finalContact = {
+      ...formData,
+      id: nanoid(),
+    };
+
+    setContacts((prevState) => {
+      return [...prevState, finalContact];
+    });
   };
 
-  const totalFeedback = rating.good + rating.neutral + rating.bad;
+  const deleteContact = (contactId) => {
+    setContacts((prevState) => {
+      return prevState.filter((contact) => contact.id !== contactId);
+    });
+  };
 
-  const positive = Math.round(
-    ((rating.good + rating.neutral) / totalFeedback) * 100
+  const [filter, setFilter] = useState("");
+
+  const onChangeFilter = (event) => {
+    setFilter(event.target.value);
+  };
+
+  const filteredContacts = contacts.filter((contact) =>
+    contact.name.toLowerCase().includes(filter.toLowerCase())
   );
-
-  function reset() {
-    setRating(defaultRating);
-  }
-
-  useEffect(() => {
-    localStorage.setItem("ratingValues", JSON.stringify(rating));
-  }, [rating]);
-
   return (
     <>
-      <Description />
-      <Options
-        updateFeedback={updateFeedback}
-        total={totalFeedback}
-        reset={reset}
-      />
-      {totalFeedback > 0 ? (
-        <>
-          <Feedback rating={rating} total={totalFeedback} positive={positive} />
-        </>
-      ) : (
-        <Notification />
-      )}
+      <h1>Phonebook</h1>
+      <ContactForm addContact={addContact} />
+      <SearchBox value={filter} onChange={onChangeFilter} />
+      <ContactList contacts={filteredContacts} deleteContact={deleteContact} />
     </>
   );
 }
